@@ -27,13 +27,6 @@ st.markdown("""
         color: #4B5563;
         margin-bottom: 1.5rem;
     }
-    .metric-card {
-        background-color: #F8FAFC;
-        border-left: 5px solid #2563EB;
-        padding: 15px;
-        border-radius: 8px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -79,7 +72,6 @@ def calculate_drvt_metrics(wavelength_nm):
 # 4. القائمة الجانبية (مدخلات المصنع والمهندس)
 # ==========================================
 with st.sidebar:
-    st.image("https://icons8.com", width=60)
     st.title("⚙️ إعدادات التصميم والمصنع")
     
     selected_mat_name = st.selectbox("اختر مادة الخلية الشمسية:", list(MATERIALS.keys()))
@@ -100,30 +92,26 @@ with st.sidebar:
 r_res, a_eff, e_photon, regime = calculate_drvt_metrics(wavelength)
 eg = mat["Eg"]
 
-# حساب الكفاءة والفقد الحراري وفق النظرية
 if e_photon >= eg:
     spectral_utilization = eg / e_photon
     thermal_loss_pct = (1.0 - spectral_utilization) * 100.0
-    # تحسين الاقتران الرنيني يرفع الكفاءة الفعلية مقارنة بالتقليدي
-    resonant_boost_factor = 1.0 + (0.14 * (a_eff / 1.0)) 
-    resonant_eff = min(mat["std_eff"] * resonant_boost_factor, 33.7 if "Tandem" not in selected_mat_name else 43.0)
+    resonant_boost_factor = 1.0 + (0.14 * (a_eff / 1.0)) * (fill_factor / 0.80)
+    max_cap = 43.0 if "Tandem" in selected_mat_name else 33.7
+    resonant_eff = min(mat["std_eff"] * resonant_boost_factor, max_cap)
 else:
     spectral_utilization = 0.0
     thermal_loss_pct = 100.0
     resonant_eff = 0.0
 
-# القدرة الناتجة للوح الواحد (Watt)
 p_out_std = solar_irradiance * cell_area * (mat["std_eff"] / 100.0)
 p_out_res = solar_irradiance * cell_area * (resonant_eff / 100.0)
 
-# تحسين سُمك المادة الخام وتقليل التكلفة
 thickness_reduction_pct = min(18.0 + (a_eff * 12.0), 38.0) if resonant_eff > 0 else 0.0
 optimized_thickness = mat["std_thickness"] * (1.0 - thickness_reduction_pct / 100.0)
 
-# العائد المالي السنوي للمصنع ($)
 annual_kw = production_mw * 1000.0
 material_savings_usd = annual_kw * mat["cost_per_kw"] * (thickness_reduction_pct / 100.0) * 0.45
-efficiency_premium_usd = annual_kw * ((resonant_eff - mat["std_eff"]) / max(mat["std_eff"], 1)) * 180.0
+efficiency_premium_usd = annual_kw * ((resonant_eff - mat["std_eff"]) / max(mat["std_eff"], 1.0)) * 180.0
 total_annual_benefit_usd = max(0.0, material_savings_usd + efficiency_premium_usd)
 
 # ==========================================
@@ -132,19 +120,17 @@ total_annual_benefit_usd = max(0.0, material_savings_usd + efficiency_premium_us
 st.markdown('<div class="main-header">☀️ منصة تصميم الخلايا الشمسية بنظرية الحجم الرنيني الديناميكي (DRVT)</div>', unsafe_allow_html=True)
 st.markdown('<div class="sub-header">أداة هندسية واقتصادية لتحسين امتصاص الطيف الشمسي، خفض استهلاك المواد الخام، وتعظيم عائد خطوط الإنتاج</div>', unsafe_allow_html=True)
 
-# مؤشرات النظرية الفيزيائية
 st.subheader("1️⃣ المخرجات الفيزيائية للرنين (DRVT Core Parameters)")
 c1, c2, c3, c4 = st.columns(4)
-c1.metric("نصف القطر الرنيني (r_res)", f"{r_res:.4f} nm", help="r_res = sqrt(286.398 / (π * λ))")
-c2.metric("المساحة الفعالة (A_eff)", f"{a_eff:.4f} nm²", help="A_eff = π * r_res²")
+c1.metric("نصف القطر الرنيني (r_res)", f"{r_res:.4f} nm")
+c2.metric("المساحة الفعالة (A_eff)", f"{a_eff:.4f} nm²")
 c3.metric("طاقة الفوتون الرنينية (E)", f"{e_photon:.3f} eV", f"فجوة المادة: {eg} eV")
 c4.metric("الفقد الحراري الطيفي", f"{thermal_loss_pct:.1f} %", delta="-تحسين حراري" if thermal_loss_pct < 45 else "فقد مرتفع", delta_color="inverse")
 
-st.info(f"**تصنيف النطاق الطيفي:** {regime} | **حجم الاتزان الرنيني المرجعي:** $V_{{eq}} = 286.398\\text{{ nm}}^3$")
+st.info(f"**تصنيف النطاق الطيفي:** {regime} | **حجم الاتزان الرنيني المرجعي:** Veq = 286.398 nm³")
 
 st.markdown("---")
 
-# المقارنة الصناعية والاقتصادية
 st.subheader("2️⃣ الجدوى الصناعية والاقتصادية للمصنع (Standard vs. DRVT Design)")
 m1, m2, m3, m4 = st.columns(4)
 m1.metric("كفاءة التحويل (تصميم DRVT)", f"{resonant_eff:.2f} %", f"+{resonant_eff - mat['std_eff']:.2f} % عن التقليدي")
@@ -185,26 +171,35 @@ st.markdown("---")
 st.subheader("3️⃣ تصدير التقرير الفني والمالي للمستثمرين والمصانع (Executive Summary)")
 
 report_date = datetime.now().strftime("%Y-%m-%d %H:%M")
-executive_report = f"""====================================================================
-EXECUTIVE TECHNICAL & FINANCIAL REPORT (DRVT SOLAR OPTIMIZER)
-Based on Dynamic Resonant Volume Theory (Dr. Khalid Abdel Fattah)
-Generated on: {report_date}
-====================================================================
+eff_gain = resonant_eff - mat['std_eff']
+power_gain = p_out_res - p_out_std
 
-1. SELECTED MATERIAL & OPERATING SPECS:
-   - Solar Cell Technology : {selected_mat_name}
-   - Bandgap Energy (Eg)   : {eg} eV
-   - Target Wavelength (λ) : {wavelength} nm
-   - Standard Panel Area   : {cell_area} m²
-   - Solar Irradiance      : {solar_irradiance} W/m²
-
-2. DRVT QUANTUM & RESONANT PARAMETERS:
-   - Equilibrium Volume (Veq) : {V_EQ} nm³
-   - Resonant Radius (r_res)  : {r_res:.4f} nm
-   - Effective Area (A_eff)   : {a_eff:.4f} nm²
-   - Photon Energy (E)        : {e_photon:.3f} eV
-   - Spectral Thermal Loss    : {thermal_loss_pct:.1f} %
-   - Physical Regime          : {regime}
-
-3. MANUFACTURING & PERFORMANCE BENCHMARK (STANDARD vs. DRVT):
-   - Conversion Efficiency    : {resonant_eff:.2f}% (vs. {mat['std_eff']}% Standard) -> +{resonant_eff - mat['std_eff']:.2f}% Gain
+report_lines = [
+    "====================================================================",
+    "EXECUTIVE TECHNICAL & FINANCIAL REPORT (DRVT SOLAR OPTIMIZER)",
+    "Based on Dynamic Resonant Volume Theory (Dr. Khalid Abdel Fattah)",
+    f"Generated on: {report_date}",
+    "====================================================================",
+    "",
+    "1. SELECTED MATERIAL & OPERATING SPECS:",
+    f"   - Solar Cell Technology : {selected_mat_name}",
+    f"   - Bandgap Energy (Eg)   : {eg} eV",
+    f"   - Target Wavelength (λ) : {wavelength} nm",
+    f"   - Standard Panel Area   : {cell_area} m2",
+    f"   - Solar Irradiance      : {solar_irradiance} W/m2",
+    "",
+    "2. DRVT QUANTUM & RESONANT PARAMETERS:",
+    f"   - Equilibrium Volume (Veq) : {V_EQ} nm3",
+    f"   - Resonant Radius (r_res)  : {r_res:.4f} nm",
+    f"   - Effective Area (A_eff)   : {a_eff:.4f} nm2",
+    f"   - Photon Energy (E)        : {e_photon:.3f} eV",
+    f"   - Spectral Thermal Loss    : {thermal_loss_pct:.1f} %",
+    f"   - Physical Regime          : {regime}",
+    "",
+    "3. MANUFACTURING & PERFORMANCE BENCHMARK (STANDARD vs. DRVT):",
+    f"   - Conversion Efficiency    : {resonant_eff:.2f}% (vs. {mat['std_eff']}% Standard) -> +{eff_gain:.2f}% Gain",
+    f"   - Single Panel Output      : {p_out_res:.1f} W (vs. {p_out_std:.1f} W Standard) -> +{power_gain:.1f} W Gain",
+    f"   - Active Layer Thickness   : {optimized_thickness:.2f} um (vs. {mat['std_thickness']} um Standard) -> {thickness_reduction_pct:.1f}% Material Saved",
+    "",
+    f"4. INDUSTRIAL FINANCIAL IMPACT (LINE CAPACITY: {production_mw} MW/YEAR):",
+    f"   - Annual Raw Material Savings : ${material_savings_usd:,.2f} USD",
