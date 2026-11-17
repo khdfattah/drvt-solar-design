@@ -13,7 +13,7 @@ IS_EN = (LANG == "English")
 
 TXT = {
     "title": "☀️ DRVT Solar Cell Design & Optimization Simulator" if IS_EN else "☀️ منصة تصميم الخلايا الشمسية - نظرية الحجم الرنيني الديناميكي",
-    "sub": "By Dr. Khalid Abdel Fattah | Quantum-Resonant & Economic Decision Tool for PV Manufacturers" if IS_EN else "د. خالد عبد الفتاح | أداة محاكاة هندسية واقتصادية للمصنعين والمستثمرين",
+    "sub": "By Dr. Khalid Abdelfattah M. Osman| Quantum-Resonant & Economic Decision Tool for PV Manufacturers" if IS_EN else "د. خالد عبد الفتاح محمد عثمان | أداة محاكاة هندسية واقتصادية للمصنعين والمستثمرين",
     "side_hdr": "⚙️ Factory & Design Inputs" if IS_EN else "⚙️ إعدادات التصميم والمصنع",
     "mat_lbl": "Select Solar Cell Material:" if IS_EN else "اختر مادة الخلية الشمسية:",
     "wl_lbl": "Target Wavelength λ (nm):" if IS_EN else "الطول الموجي المستهدف λ (nm):",
