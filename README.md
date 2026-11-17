@@ -53,24 +53,6 @@ Access the live interactive web application directly via Streamlit Cloud:
 
 ---
 
-## 🛠️ Local Installation | التشغيل المحلي على جهازك
-
-To run the simulator locally using Python:
-
-```bash
-# 1. Clone the repository
-git clone https://github.com
-cd drvt-solar-design
-
-# 2. Install dependencies
-pip install -r requirements.txt
-
-# 3. Run the Streamlit app
-streamlit run drvt_solar_cell_design.py
-```
-
----
-
 ## 📜 Citation & Intellectual Property | الاستشهاد العلمي والملكية الفكرية
 
 * **Author:** Dr. Khalid Abdel Fattah — Merowe Institute of Technology, Merowe University of Technology, Sudan (`khdfattah@gmail.com`).
